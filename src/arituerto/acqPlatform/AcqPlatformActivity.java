@@ -3,6 +3,7 @@ package arituerto.acqPlatform;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -100,6 +101,18 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		mOpenCvCameraView = (CamControlView) findViewById(R.id.acqplatform_activity_java_surface_view);
 		mOpenCvCameraView.setVisibility(CamControlView.VISIBLE);
 		mOpenCvCameraView.setCvCameraViewListener(this);
+
+		// Images time reference
+		refNanoTime = System.nanoTime();
+
+		// Set sensors manager, get available sensors and set the listeners
+		mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+		mSensorList = getSensorList(mSensorManager);
+		ListIterator<Sensor> iter = mSensorList.listIterator();
+		while (iter.hasNext()) {
+			mSensorManager.registerListener(this,iter.next(),SensorManager.SENSOR_DELAY_FASTEST);
+		}
+		mSensorLoggers = new HashMap<Integer,Logger>();
 	}
 
 	@Override
@@ -124,20 +137,6 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 			Log.d(TAG, "OpenCV library found inside package. Using it!");
 			mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
 		}
-
-		// Images time reference
-		refNanoTime = System.nanoTime();
-
-		// Set sensors manager, get available sensors and set the listeners
-		mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
-		mSensorList = getSensorList(mSensorManager);
-		ListIterator<Sensor> iter = mSensorList.listIterator();
-		while (iter.hasNext()) {
-			mSensorManager.registerListener(this, iter.next(), SensorManager.SENSOR_DELAY_UI);
-		}
-
-		// Images time reference
-		refNanoTime = System.nanoTime();
 	}
 
 	@Override
@@ -146,8 +145,8 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		if (mOpenCvCameraView != null)
 			mOpenCvCameraView.disableView();
 
-		// Release all the sensor listeners
-		mSensorManager.unregisterListener(this);
+//		// Release all the sensor listeners
+//		mSensorManager.unregisterListener(this);
 	}
 
 	// CAMERA
@@ -161,6 +160,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 
 		if (mLogging) {
+			
 			//Save image!!
 			File imgFileName = new File(loggingDir.getPath() + "/img_" + System.nanoTime() + "_" + refNanoTime + ".jpg");
 			// Convert to Bitmap (android)
@@ -169,7 +169,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 			// Save
 			try {
 				FileOutputStream fos = new FileOutputStream(imgFileName);
-				rgbaBitmap.compress(Bitmap.CompressFormat.PNG,100,fos);
+				rgbaBitmap.compress(Bitmap.CompressFormat.JPEG,100,fos);
 				fos.flush();
 				fos.close();
 			} catch (Exception e) {
@@ -182,6 +182,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	// CREATING THE MENU
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
+		Log.i(TAG, "called onCreateOptionsMenu");
 
 		mAutoFocusModeMenu = menu.addSubMenu("Auto Focus Modes");
 		mAutoFocusModeList = mOpenCvCameraView.getAutoFocusModes();
@@ -236,34 +237,32 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	}
 
 	// SENSORS
-	// Check if sensors are available
 	public List<Sensor> getSensorList(SensorManager manager) {
 
-		List<Sensor> mSensorList = new ArrayList<Sensor>();
+		List<Sensor> sensorList = new ArrayList<Sensor>();
 		// Sensors to log
 		if (manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
-			mSensorList.add(manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
+			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
 		}
 		if (manager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION) != null) {
-			mSensorList.add(manager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION));
+			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION));
 		}
 		if (manager.getDefaultSensor(Sensor.TYPE_GRAVITY) != null) {
-			mSensorList.add(manager.getDefaultSensor(Sensor.TYPE_GRAVITY));
+			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_GRAVITY));
 		}
 		if (manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null) {
-			mSensorList.add(manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE));
+			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE));
 		}
 		if (manager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR) != null) {
-			mSensorList.add(manager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR));
+			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR));
 		}
 		if (manager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) != null) {
-			mSensorList.add(manager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR));
+			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR));
 		}
 		if (manager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR) != null) {
-			mSensorList.add(manager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR));
+			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR));
 		}
-
-		return mSensorList;
+		return sensorList;
 	}
 
 	@Override
@@ -272,8 +271,8 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
-		if (mLogging)
-		{
+		
+		if (mLogging) {
 			Logger sensorLogger = mSensorLoggers.get(event.sensor.getType());
 			String accData = event.timestamp + "," + event.values;
 			try {
@@ -294,7 +293,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		String currentDateandTime = sdf.format(new Date());
 
 		// Start to log sensors and images
-		if (!mLogging) // START LOGGING! Open imuLogFile and start to write
+		if (!mLogging)
 		{
 			
 			// Create directory
@@ -306,6 +305,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 			ListIterator<Sensor> iter = mSensorList.listIterator();
 			String loggerFileName = new String();
 			while (iter.hasNext()) {
+				
 				switch (iter.next().getType()) {
 				case (Sensor.TYPE_ACCELEROMETER):
 					loggerFileName = loggingDir.getPath() + "/typeAccelerometer_log.csv";
@@ -377,8 +377,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 				} catch (IOException ex) {
 					ex.printStackTrace();
 				}
-			}
-			
+			}			
 			mSensorLoggers.clear();
 			
 			Toast.makeText(this, "STOP LOGGING!", Toast.LENGTH_SHORT).show();
