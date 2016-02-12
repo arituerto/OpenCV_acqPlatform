@@ -41,10 +41,10 @@ import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-public class Tutorial3Activity extends Activity implements CvCameraViewListener2, OnTouchListener, SensorEventListener {
-	private static final String TAG = "OCV Acq Platform::Activity";
+public class AcqPlatformActivity extends Activity implements CvCameraViewListener2, OnTouchListener, SensorEventListener {
+	private static final String TAG = "OCV Acq Platform:: AcqPlatformActivity";
 
-	private Tutorial3View mOpenCvCameraView;
+	private CamControlView mOpenCvCameraView;
 
 	// Menu items for resolution, auto focus and sensors
 	private List<Size> mResolutionList;
@@ -73,11 +73,8 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 			case LoaderCallbackInterface.SUCCESS:
 			{
 				Log.i(TAG, "OpenCV loaded successfully");
-
 				mOpenCvCameraView.enableView();
-
-				mOpenCvCameraView.setOnTouchListener(Tutorial3Activity.this);
-
+				mOpenCvCameraView.setOnTouchListener(AcqPlatformActivity.this);
 			} break;
 			default:
 			{
@@ -87,7 +84,7 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 		}
 	};
 
-	public Tutorial3Activity() {
+	public AcqPlatformActivity() {
 		Log.i(TAG, "Instantiated new " + this.getClass());
 	}
 
@@ -99,9 +96,9 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
 		// Set layout
-		setContentView(R.layout.tutorial3_surface_view);
-		mOpenCvCameraView = (Tutorial3View) findViewById(R.id.tutorial3_activity_java_surface_view);
-		mOpenCvCameraView.setVisibility(Tutorial3View.VISIBLE);
+		setContentView(R.layout.acqplatform_surface_view);
+		mOpenCvCameraView = (CamControlView) findViewById(R.id.acqplatform_activity_java_surface_view);
+		mOpenCvCameraView.setVisibility(CamControlView.VISIBLE);
 		mOpenCvCameraView.setCvCameraViewListener(this);
 	}
 
@@ -136,7 +133,7 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 		mSensorList = getSensorList(mSensorManager);
 		ListIterator<Sensor> iter = mSensorList.listIterator();
 		while (iter.hasNext()) {
-			mSensorManager.registerListener(this, iter.next(), SensorManager.SENSOR_DELAY_FASTEST);
+			mSensorManager.registerListener(this, iter.next(), SensorManager.SENSOR_DELAY_UI);
 		}
 
 		// Images time reference
@@ -164,7 +161,6 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 
 		if (mLogging) {
-
 			//Save image!!
 			File imgFileName = new File(loggingDir.getPath() + "/img_" + System.nanoTime() + "_" + refNanoTime + ".jpg");
 			// Convert to Bitmap (android)
@@ -173,16 +169,13 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 			// Save
 			try {
 				FileOutputStream fos = new FileOutputStream(imgFileName);
-				rgbaBitmap.compress(Bitmap.CompressFormat.JPEG,100,fos);
+				rgbaBitmap.compress(Bitmap.CompressFormat.PNG,100,fos);
 				fos.flush();
 				fos.close();
-
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-
 		}
-
 		return inputFrame.rgba();
 	}
 
@@ -199,7 +192,7 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 			String element = modeItr.next();
 			mAutoFocusModeItems[idx] = mAutoFocusModeMenu.add(1, idx, Menu.NONE,element);
 			idx++;
-		}   	
+		}
 
 		mResolutionMenu = menu.addSubMenu("Resolution");
 		mResolutionList = mOpenCvCameraView.getResolutionList();
@@ -212,7 +205,6 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 					Integer.valueOf(element.width).toString() + "x" + Integer.valueOf(element.height).toString());
 			idx++;
 		}
-
 		return true;
 	}
 
@@ -240,7 +232,6 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 			String caption = Integer.valueOf(resolution.width).toString() + "x" + Integer.valueOf(resolution.height).toString();
 			Toast.makeText(this, caption, Toast.LENGTH_SHORT).show();
 		}
-
 		return true;
 	}
 
@@ -249,8 +240,7 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 	public List<Sensor> getSensorList(SensorManager manager) {
 
 		List<Sensor> mSensorList = new ArrayList<Sensor>();
-
-		// Sensors that I want to log
+		// Sensors to log
 		if (manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
 			mSensorList.add(manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
 		}
@@ -285,8 +275,7 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 		if (mLogging)
 		{
 			Logger sensorLogger = mSensorLoggers.get(event.sensor.getType());
-			String accData = event.timestamp + "," + event.values[0] + "," +
-					event.values[1] + "," + event.values[2];
+			String accData = event.timestamp + "," + event.values;
 			try {
 				sensorLogger.log(accData);
 			} catch (IOException e) {
@@ -307,67 +296,69 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 		// Start to log sensors and images
 		if (!mLogging) // START LOGGING! Open imuLogFile and start to write
 		{
+			
 			// Create directory
 			loggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
 					"/" + currentDateandTime);
 			loggingDir.mkdirs();
+			
 			// Create the loggers
 			ListIterator<Sensor> iter = mSensorList.listIterator();
-			String loggerName = new String();
+			String loggerFileName = new String();
 			while (iter.hasNext()) {
 				switch (iter.next().getType()) {
 				case (Sensor.TYPE_ACCELEROMETER):
-					loggerName = loggingDir.getPath() + "/typeAccelerometer_log.csv";
+					loggerFileName = loggingDir.getPath() + "/typeAccelerometer_log.csv";
 				try {
-					mSensorLoggers.put(Sensor.TYPE_ACCELEROMETER,new Logger(loggerName));
+					mSensorLoggers.put(Sensor.TYPE_ACCELEROMETER,new Logger(loggerFileName));
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
 				break;
 				case (Sensor.TYPE_LINEAR_ACCELERATION):
-					loggerName = loggingDir.getPath() + "/typeLinearAcceleration_log.csv";
+					loggerFileName = loggingDir.getPath() + "/typeLinearAcceleration_log.csv";
 				try {
-					mSensorLoggers.put(Sensor.TYPE_LINEAR_ACCELERATION,new Logger(loggerName));
+					mSensorLoggers.put(Sensor.TYPE_LINEAR_ACCELERATION,new Logger(loggerFileName));
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
 				break;
 				case (Sensor.TYPE_GRAVITY):
-					loggerName = loggingDir.getPath() + "/typeGravity_log.csv";
+					loggerFileName = loggingDir.getPath() + "/typeGravity_log.csv";
 				try {
-					mSensorLoggers.put(Sensor.TYPE_GRAVITY,new Logger(loggerName));
+					mSensorLoggers.put(Sensor.TYPE_GRAVITY,new Logger(loggerFileName));
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
 				break;
 				case (Sensor.TYPE_GYROSCOPE):
-					loggerName = loggingDir.getPath() + "/typeGyroscope_log.csv";
+					loggerFileName = loggingDir.getPath() + "/typeGyroscope_log.csv";
 				try {
-					mSensorLoggers.put(Sensor.TYPE_GYROSCOPE,new Logger(loggerName));
+					mSensorLoggers.put(Sensor.TYPE_GYROSCOPE,new Logger(loggerFileName));
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
 				break;
 				case (Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR):
-					loggerName = loggingDir.getPath() + "/typeGeomagneticRotationVector_log.csv";
+					loggerFileName = loggingDir.getPath() + "/typeGeomagneticRotationVector_log.csv";
 				try {
-					mSensorLoggers.put(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR,new Logger(loggerName));
+					mSensorLoggers.put(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR,new Logger(loggerFileName));
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
 				break;
 				case (Sensor.TYPE_ROTATION_VECTOR):
-					loggerName = loggingDir.getPath() + "/typeRotationVector_log.csv";
+					loggerFileName = loggingDir.getPath() + "/typeRotationVector_log.csv";
 				try {
-					mSensorLoggers.put(Sensor.TYPE_ROTATION_VECTOR,new Logger(loggerName));
+					mSensorLoggers.put(Sensor.TYPE_ROTATION_VECTOR,new Logger(loggerFileName));
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
 				break;
 				case (Sensor.TYPE_GAME_ROTATION_VECTOR):
-					loggerName = loggingDir.getPath() + "/typeGameRotationVector_log.csv";
+					loggerFileName = loggingDir.getPath() + "/typeGameRotationVector_log.csv";
 				try {
-					mSensorLoggers.put(Sensor.TYPE_GAME_ROTATION_VECTOR,new Logger(loggerName));
+					mSensorLoggers.put(Sensor.TYPE_GAME_ROTATION_VECTOR,new Logger(loggerFileName));
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
@@ -387,6 +378,9 @@ public class Tutorial3Activity extends Activity implements CvCameraViewListener2
 					ex.printStackTrace();
 				}
 			}
+			
+			mSensorLoggers.clear();
+			
 			Toast.makeText(this, "STOP LOGGING!", Toast.LENGTH_SHORT).show();
 			mLogging = false;
 

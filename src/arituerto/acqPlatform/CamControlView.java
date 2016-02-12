@@ -9,11 +9,11 @@ import android.hardware.Camera;
 import android.hardware.Camera.Size;
 import android.util.AttributeSet;
 
-public class Tutorial3View extends JavaCameraView {
+public class CamControlView extends JavaCameraView {
 
-    private static final String TAG = "OCV Acq Platform::Tutorial3View";
+    private static final String TAG = "OCV Acq Platform:: CamControlView";
 
-    public Tutorial3View(Context context, AttributeSet attrs) {
+    public CamControlView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 

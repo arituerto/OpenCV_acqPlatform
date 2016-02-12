@@ -3,10 +3,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
-    <arituerto.acqPlatform.Tutorial3View
+    <arituerto.acqPlatform.CamControlView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone"
-        android:id="@+id/tutorial3_activity_java_surface_view" />
+        android:id="@+id/acqplatform_activity_java_surface_view" />
 
 </LinearLayout>

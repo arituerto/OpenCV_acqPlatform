@@ -10,7 +10,7 @@
         android:icon="@drawable/icon"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
 
-        <activity android:name="Tutorial3Activity"
+        <activity android:name="AcqPlatformActivity"
                   android:label="@string/app_name"
                   android:screenOrientation="landscape"
                   android:configChanges="keyboardHidden|orientation">
