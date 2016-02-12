@@ -145,8 +145,8 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		if (mOpenCvCameraView != null)
 			mOpenCvCameraView.disableView();
 
-//		// Release all the sensor listeners
-//		mSensorManager.unregisterListener(this);
+		// Release all the sensor listeners
+		mSensorManager.unregisterListener(this);
 	}
 
 	// CAMERA
@@ -262,6 +262,9 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		if (manager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR) != null) {
 			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR));
 		}
+		if (manager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null) {
+			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD));
+		}
 		return sensorList;
 	}
 
@@ -274,7 +277,10 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		
 		if (mLogging) {
 			Logger sensorLogger = mSensorLoggers.get(event.sensor.getType());
-			String accData = event.timestamp + "," + event.values;
+			String accData = "" + event.timestamp;
+			for (float i : event.values){
+				accData += "," + i; 
+			}
 			try {
 				sensorLogger.log(accData);
 			} catch (IOException e) {
@@ -307,6 +313,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 			while (iter.hasNext()) {
 				
 				switch (iter.next().getType()) {
+				
 				case (Sensor.TYPE_ACCELEROMETER):
 					loggerFileName = loggingDir.getPath() + "/typeAccelerometer_log.csv";
 				try {
@@ -315,6 +322,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
+				
 				case (Sensor.TYPE_LINEAR_ACCELERATION):
 					loggerFileName = loggingDir.getPath() + "/typeLinearAcceleration_log.csv";
 				try {
@@ -323,6 +331,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
+				
 				case (Sensor.TYPE_GRAVITY):
 					loggerFileName = loggingDir.getPath() + "/typeGravity_log.csv";
 				try {
@@ -331,6 +340,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
+				
 				case (Sensor.TYPE_GYROSCOPE):
 					loggerFileName = loggingDir.getPath() + "/typeGyroscope_log.csv";
 				try {
@@ -339,6 +349,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
+				
 				case (Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR):
 					loggerFileName = loggingDir.getPath() + "/typeGeomagneticRotationVector_log.csv";
 				try {
@@ -347,6 +358,16 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
+				
+				case (Sensor.TYPE_MAGNETIC_FIELD):
+					loggerFileName = loggingDir.getPath() + "/typeMagneticField_log.csv";
+				try {
+					mSensorLoggers.put(Sensor.TYPE_MAGNETIC_FIELD,new Logger(loggerFileName));
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
+				break;
+				
 				case (Sensor.TYPE_ROTATION_VECTOR):
 					loggerFileName = loggingDir.getPath() + "/typeRotationVector_log.csv";
 				try {
@@ -355,14 +376,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
-				case (Sensor.TYPE_GAME_ROTATION_VECTOR):
-					loggerFileName = loggingDir.getPath() + "/typeGameRotationVector_log.csv";
-				try {
-					mSensorLoggers.put(Sensor.TYPE_GAME_ROTATION_VECTOR,new Logger(loggerFileName));
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				}
-				break;
+				
 				}
 			}
 
