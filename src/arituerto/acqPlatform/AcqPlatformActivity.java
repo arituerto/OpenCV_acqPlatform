@@ -184,8 +184,6 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		Log.i(TAG, "called onCreateOptionsMenu");
-		
-		super.onCreateOptionsMenu(menu);
 
 		mAutoFocusModeMenu = menu.addSubMenu("Auto Focus Modes");
 		mAutoFocusModeList = mOpenCvCameraView.getAutoFocusModes();
@@ -219,19 +217,15 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		{
 			int id = item.getItemId();
 			String afMode = mAutoFocusModeList.get(id);
-			Size resolution = mOpenCvCameraView.getResolution();
 			mOpenCvCameraView.setAutoFocusMode(afMode);
-			mOpenCvCameraView.setResolution(resolution);
 			String caption = "AF MODE: " + mOpenCvCameraView.getAutoFocusMode();
 			Toast.makeText(this, caption, Toast.LENGTH_SHORT).show();
 		}
 		else if (item.getGroupId() == 2)
 		{
 			int id = item.getItemId();
-			String afMode = mAutoFocusModeList.get(id);
 			Size resolution = mResolutionList.get(id);
 			mOpenCvCameraView.setResolution(resolution);
-			mOpenCvCameraView.setAutoFocusMode(afMode);
 			resolution = mOpenCvCameraView.getResolution();
 			String caption = Integer.valueOf(resolution.width).toString() + "x" + Integer.valueOf(resolution.height).toString();
 			Toast.makeText(this, caption, Toast.LENGTH_SHORT).show();
