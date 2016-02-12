@@ -105,13 +105,9 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		// Images time reference
 		refNanoTime = System.nanoTime();
 
-		// Set sensors manager, get available sensors and set the listeners
+		// Set sensors manager and get available sensors
 		mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 		mSensorList = getSensorList(mSensorManager);
-		ListIterator<Sensor> iter = mSensorList.listIterator();
-		while (iter.hasNext()) {
-			mSensorManager.registerListener(this,iter.next(),SensorManager.SENSOR_DELAY_FASTEST);
-		}
 		mSensorLoggers = new HashMap<Integer,Logger>();
 	}
 
@@ -136,6 +132,11 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		} else {
 			Log.d(TAG, "OpenCV library found inside package. Using it!");
 			mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+		}
+		// Activate sensor listeners
+		ListIterator<Sensor> iter = mSensorList.listIterator();
+		while (iter.hasNext()) {
+			mSensorManager.registerListener(this,iter.next(),1000);
 		}
 	}
 
@@ -183,6 +184,8 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		Log.i(TAG, "called onCreateOptionsMenu");
+		
+		super.onCreateOptionsMenu(menu);
 
 		mAutoFocusModeMenu = menu.addSubMenu("Auto Focus Modes");
 		mAutoFocusModeList = mOpenCvCameraView.getAutoFocusModes();
