@@ -54,7 +54,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	private SubMenu mAutoFocusModeMenu;
 	private List<String> mAutoFocusModeList;
 	private MenuItem[] mAutoFocusModeItems;
-
+	private SubMenu mAcqModeMenu;
 
 	// Variables for sensor reading
 	private SensorManager mSensorManager;
@@ -63,6 +63,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 
 	// Logging data
 	private boolean mLogging;
+	private boolean mAcqModeSequence; // false if Single Image, true if Sequence
 	private long refNanoTime;
 	private File loggingDir;
 
@@ -109,6 +110,9 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 		mSensorList = getSensorList(mSensorManager);
 		mSensorLoggers = new HashMap<Integer,Logger>();
+
+		mLogging = false;
+		mAcqModeSequence = true;
 	}
 
 	@Override
@@ -161,20 +165,37 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 
 		if (mLogging) {
-			
-			//Save image!!
-			File imgFileName = new File(loggingDir.getPath() + "/img_" + System.nanoTime() + "_" + refNanoTime + ".jpg");
-			// Convert to Bitmap (android)
-			Bitmap rgbaBitmap = Bitmap.createBitmap(inputFrame.rgba().cols(), inputFrame.rgba().rows(), Bitmap.Config.ARGB_8888);;
-			Utils.matToBitmap(inputFrame.rgba(),rgbaBitmap);
-			// Save
-			try {
-				FileOutputStream fos = new FileOutputStream(imgFileName);
-				rgbaBitmap.compress(Bitmap.CompressFormat.JPEG,100,fos);
-				fos.flush();
-				fos.close();
-			} catch (Exception e) {
-				e.printStackTrace();
+			if (mAcqModeSequence) {
+				//Save image!!
+				File imgFileName = new File(loggingDir.getPath() + "/img_" + System.nanoTime() + "_" + refNanoTime + ".jpg");
+				// Convert to Bitmap (android)
+				Bitmap rgbaBitmap = Bitmap.createBitmap(inputFrame.rgba().cols(), inputFrame.rgba().rows(), Bitmap.Config.ARGB_8888);;
+				Utils.matToBitmap(inputFrame.rgba(),rgbaBitmap);
+				// Save
+				try {
+					FileOutputStream fos = new FileOutputStream(imgFileName);
+					rgbaBitmap.compress(Bitmap.CompressFormat.JPEG,100,fos);
+					fos.flush();
+					fos.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else {
+				//Save image!!
+				File imgFileName = new File(loggingDir.getPath() + "/img_" + System.nanoTime() + "_" + refNanoTime + ".jpg");
+				// Convert to Bitmap (android)
+				Bitmap rgbaBitmap = Bitmap.createBitmap(inputFrame.rgba().cols(), inputFrame.rgba().rows(), Bitmap.Config.ARGB_8888);;
+				Utils.matToBitmap(inputFrame.rgba(),rgbaBitmap);
+				// Save
+				try {
+					FileOutputStream fos = new FileOutputStream(imgFileName);
+					rgbaBitmap.compress(Bitmap.CompressFormat.JPEG,100,fos);
+					fos.flush();
+					fos.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				mLogging = false;
 			}
 		}
 		return inputFrame.rgba();
@@ -192,7 +213,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		int idx = 0;
 		while(modeItr.hasNext()) {
 			String element = modeItr.next();
-			mAutoFocusModeItems[idx] = mAutoFocusModeMenu.add(1, idx, Menu.NONE,element);
+			mAutoFocusModeItems[idx] = mAutoFocusModeMenu.add(1, idx, idx,element);
 			idx++;
 		}
 
@@ -203,10 +224,14 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		idx = 0;
 		while(resolutionItr.hasNext()) {
 			Size element = resolutionItr.next();
-			mResolutionMenuItems[idx] = mResolutionMenu.add(2, idx, Menu.NONE,
+			mResolutionMenuItems[idx] = mResolutionMenu.add(2, idx, idx,
 					Integer.valueOf(element.width).toString() + "x" + Integer.valueOf(element.height).toString());
 			idx++;
 		}
+		
+		mAcqModeMenu = menu.addSubMenu("Acquisition Mode");
+		mAcqModeMenu.add(3,1,1,"Single Image");
+		mAcqModeMenu.add(3,2,2,"Image sequence");
 		return true;
 	}
 
@@ -220,15 +245,21 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 			mOpenCvCameraView.setAutoFocusMode(afMode);
 			String caption = "AF MODE: " + mOpenCvCameraView.getAutoFocusMode();
 			Toast.makeText(this, caption, Toast.LENGTH_SHORT).show();
-		}
-		else if (item.getGroupId() == 2)
-		{
+		} else if (item.getGroupId() == 2) {
 			int id = item.getItemId();
 			Size resolution = mResolutionList.get(id);
 			mOpenCvCameraView.setResolution(resolution);
 			resolution = mOpenCvCameraView.getResolution();
 			String caption = Integer.valueOf(resolution.width).toString() + "x" + Integer.valueOf(resolution.height).toString();
 			Toast.makeText(this, caption, Toast.LENGTH_SHORT).show();
+		} else if (item.getGroupId() == 3) {
+			if (item.getItemId() == 1) {
+				mAcqModeSequence = false;
+				Toast.makeText(this, "Single Image", Toast.LENGTH_SHORT).show();
+			} else if (item.getItemId() == 2) {
+				mAcqModeSequence = true;
+				Toast.makeText(this, "Sequence of Images", Toast.LENGTH_SHORT).show();
+			}
 		}
 		return true;
 	}
@@ -271,7 +302,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
-		
+
 		if (mLogging) {
 			Logger sensorLogger = mSensorLoggers.get(event.sensor.getType());
 			String accData = "" + event.timestamp;
@@ -298,19 +329,19 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		// Start to log sensors and images
 		if (!mLogging)
 		{
-			
+
 			// Create directory
 			loggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
 					"/" + currentDateandTime);
 			loggingDir.mkdirs();
-			
+
 			// Create the loggers
 			ListIterator<Sensor> iter = mSensorList.listIterator();
 			String loggerFileName = new String();
 			while (iter.hasNext()) {
-				
+
 				switch (iter.next().getType()) {
-				
+
 				case (Sensor.TYPE_ACCELEROMETER):
 					loggerFileName = loggingDir.getPath() + "/typeAccelerometer_log.csv";
 				try {
@@ -319,7 +350,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
-				
+
 				case (Sensor.TYPE_LINEAR_ACCELERATION):
 					loggerFileName = loggingDir.getPath() + "/typeLinearAcceleration_log.csv";
 				try {
@@ -328,7 +359,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
-				
+
 				case (Sensor.TYPE_GRAVITY):
 					loggerFileName = loggingDir.getPath() + "/typeGravity_log.csv";
 				try {
@@ -337,7 +368,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
-				
+
 				case (Sensor.TYPE_GYROSCOPE):
 					loggerFileName = loggingDir.getPath() + "/typeGyroscope_log.csv";
 				try {
@@ -346,7 +377,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
-				
+
 				case (Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR):
 					loggerFileName = loggingDir.getPath() + "/typeGeomagneticRotationVector_log.csv";
 				try {
@@ -355,7 +386,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
-				
+
 				case (Sensor.TYPE_MAGNETIC_FIELD):
 					loggerFileName = loggingDir.getPath() + "/typeMagneticField_log.csv";
 				try {
@@ -364,7 +395,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
-				
+
 				case (Sensor.TYPE_ROTATION_VECTOR):
 					loggerFileName = loggingDir.getPath() + "/typeRotationVector_log.csv";
 				try {
@@ -373,7 +404,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 					e.printStackTrace();
 				}
 				break;
-				
+
 				}
 			}
 
@@ -390,7 +421,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 				}
 			}			
 			mSensorLoggers.clear();
-			
+
 			Toast.makeText(this, "STOP LOGGING!", Toast.LENGTH_SHORT).show();
 			mLogging = false;
 
