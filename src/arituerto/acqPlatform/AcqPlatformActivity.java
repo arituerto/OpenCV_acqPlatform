@@ -57,6 +57,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	private SubMenu mAcqModeMenu;
 
 	// Variables for sensor reading
+	private Map<Integer,String> mSensorIntNameList;
 	private SensorManager mSensorManager;
 	private List<Sensor> mSensorList;
 	private Map<Integer,Logger> mSensorLoggers;
@@ -105,6 +106,22 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 
 		// Images time reference
 		refNanoTime = System.nanoTime();
+		
+		// Build list of sensors identificators and sensor names
+		mSensorIntNameList = new HashMap<Integer,String>();
+		mSensorIntNameList.put(Sensor.TYPE_ACCELEROMETER,"ACCELEROMETER");
+		mSensorIntNameList.put(Sensor.TYPE_GAME_ROTATION_VECTOR,"GAME_ROTATION_VECTOR");
+		mSensorIntNameList.put(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR,"GEOMAGNETIC_ROTATION_VECTOR");
+		mSensorIntNameList.put(Sensor.TYPE_GRAVITY,"GRAVITY");
+		mSensorIntNameList.put(Sensor.TYPE_GYROSCOPE,"GYROSCOPE");
+		mSensorIntNameList.put(Sensor.TYPE_GYROSCOPE_UNCALIBRATED,"GYROSCOPE_UNCALIBRATED");
+		mSensorIntNameList.put(Sensor.TYPE_LINEAR_ACCELERATION,"LINEAR_ACCELERATION");
+		mSensorIntNameList.put(Sensor.TYPE_MAGNETIC_FIELD,"MAGNETIC_FIELD");
+		mSensorIntNameList.put(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED,"MAGNETIC_FIELD_UNCALIBRATED");
+		mSensorIntNameList.put(Sensor.TYPE_ORIENTATION,"ORIENTATION");
+		mSensorIntNameList.put(Sensor.TYPE_ROTATION_VECTOR,"ROTATION_VECTOR");
+		mSensorIntNameList.put(Sensor.TYPE_STEP_COUNTER,"STEP_COUNTER");
+		mSensorIntNameList.put(Sensor.TYPE_STEP_DETECTOR,"STEP_DETECTOR");
 
 		// Set sensors manager and get available sensors
 		mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
@@ -268,30 +285,11 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	public List<Sensor> getSensorList(SensorManager manager) {
 
 		List<Sensor> sensorList = new ArrayList<Sensor>();
-		// Sensors to log
-		if (manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
-			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
-		}
-		if (manager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION) != null) {
-			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION));
-		}
-		if (manager.getDefaultSensor(Sensor.TYPE_GRAVITY) != null) {
-			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_GRAVITY));
-		}
-		if (manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null) {
-			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE));
-		}
-		if (manager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR) != null) {
-			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR));
-		}
-		if (manager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) != null) {
-			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR));
-		}
-		if (manager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR) != null) {
-			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR));
-		}
-		if (manager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null) {
-			sensorList.add(manager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD));
+		// Sensors to log (iterate over mSensorIntNameList
+		for (Integer key : mSensorIntNameList.keySet()) {
+			if (manager.getDefaultSensor(key) != null) {
+				sensorList.add(manager.getDefaultSensor(key));
+			}
 		}
 		return sensorList;
 	}
@@ -304,13 +302,15 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	public void onSensorChanged(SensorEvent event) {
 
 		if (mLogging) {
-			Logger sensorLogger = mSensorLoggers.get(event.sensor.getType());
-			String accData = "" + event.timestamp;
+			Integer key = event.sensor.getType();
+			Logger sensorLogger = mSensorLoggers.get(key);
+			// String eventData = mSensorIntNameList.get(key) + "," + event.timestamp;
+			String eventData = "" + event.timestamp;
 			for (float i : event.values){
-				accData += "," + i; 
+				eventData += "," + i; 
 			}
 			try {
-				sensorLogger.log(accData);
+				sensorLogger.log(eventData);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -339,75 +339,16 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 			ListIterator<Sensor> iter = mSensorList.listIterator();
 			String loggerFileName = new String();
 			while (iter.hasNext()) {
-
-				switch (iter.next().getType()) {
-
-				case (Sensor.TYPE_ACCELEROMETER):
-					loggerFileName = loggingDir.getPath() + "/typeAccelerometer_log.csv";
+				Integer key = iter.next().getType();
+				String sensorName = mSensorIntNameList.get(key);
+				loggerFileName = loggingDir.getPath() + "/" + sensorName + "_log.csv";
 				try {
-					mSensorLoggers.put(Sensor.TYPE_ACCELEROMETER,new Logger(loggerFileName));
+					mSensorLoggers.put(key,new Logger(loggerFileName));
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
-				}
-				break;
-
-				case (Sensor.TYPE_LINEAR_ACCELERATION):
-					loggerFileName = loggingDir.getPath() + "/typeLinearAcceleration_log.csv";
-				try {
-					mSensorLoggers.put(Sensor.TYPE_LINEAR_ACCELERATION,new Logger(loggerFileName));
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				}
-				break;
-
-				case (Sensor.TYPE_GRAVITY):
-					loggerFileName = loggingDir.getPath() + "/typeGravity_log.csv";
-				try {
-					mSensorLoggers.put(Sensor.TYPE_GRAVITY,new Logger(loggerFileName));
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				}
-				break;
-
-				case (Sensor.TYPE_GYROSCOPE):
-					loggerFileName = loggingDir.getPath() + "/typeGyroscope_log.csv";
-				try {
-					mSensorLoggers.put(Sensor.TYPE_GYROSCOPE,new Logger(loggerFileName));
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				}
-				break;
-
-				case (Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR):
-					loggerFileName = loggingDir.getPath() + "/typeGeomagneticRotationVector_log.csv";
-				try {
-					mSensorLoggers.put(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR,new Logger(loggerFileName));
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				}
-				break;
-
-				case (Sensor.TYPE_MAGNETIC_FIELD):
-					loggerFileName = loggingDir.getPath() + "/typeMagneticField_log.csv";
-				try {
-					mSensorLoggers.put(Sensor.TYPE_MAGNETIC_FIELD,new Logger(loggerFileName));
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				}
-				break;
-
-				case (Sensor.TYPE_ROTATION_VECTOR):
-					loggerFileName = loggingDir.getPath() + "/typeRotationVector_log.csv";
-				try {
-					mSensorLoggers.put(Sensor.TYPE_ROTATION_VECTOR,new Logger(loggerFileName));
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				}
-				break;
-
 				}
 			}
-
+			
 			Toast.makeText(this, "START LOGGING!", Toast.LENGTH_SHORT).show();
 			mLogging = true;
 
