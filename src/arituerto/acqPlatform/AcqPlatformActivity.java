@@ -296,6 +296,34 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+		if (mLogging) {
+			Integer key = sensor.getType();
+			Logger sensorLogger = mSensorLoggers.get(key);
+			String eventData = mSensorIntNameList.get(key) + "_ACC," + System.nanoTime();
+			switch (accuracy) {
+			case (SensorManager.SENSOR_STATUS_ACCURACY_HIGH):
+				eventData += ",4";
+				break;
+			case (SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM):
+				eventData += ",3";
+				break;
+			case (SensorManager.SENSOR_STATUS_ACCURACY_LOW):
+				eventData += ",2";
+				break;
+			case (SensorManager.SENSOR_STATUS_UNRELIABLE):
+				eventData += ",1";
+				break;
+			case (SensorManager.SENSOR_STATUS_NO_CONTACT):
+				eventData += ",0";
+				break;
+			}				
+			try {
+				sensorLogger.log(eventData);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	@Override
@@ -304,8 +332,8 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		if (mLogging) {
 			Integer key = event.sensor.getType();
 			Logger sensorLogger = mSensorLoggers.get(key);
-			// String eventData = mSensorIntNameList.get(key) + "," + event.timestamp;
-			String eventData = "" + event.timestamp;
+			String eventData = mSensorIntNameList.get(key) + "_VAL," + System.nanoTime() + "," + event.timestamp;
+			// String eventData = "" + event.timestamp;
 			for (float i : event.values){
 				eventData += "," + i; 
 			}
@@ -341,7 +369,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 			while (iter.hasNext()) {
 				Integer key = iter.next().getType();
 				String sensorName = mSensorIntNameList.get(key);
-				loggerFileName = loggingDir.getPath() + "/" + sensorName + "_log.csv";
+				loggerFileName = loggingDir.getPath() + "/sensor_" + sensorName + "_log.csv";
 				try {
 					mSensorLoggers.put(key,new Logger(loggerFileName));
 				} catch (FileNotFoundException e) {
