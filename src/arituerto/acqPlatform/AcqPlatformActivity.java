@@ -67,6 +67,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	private boolean mAcqModeSequence; // false if Single Image, true if Sequence
 	private long refNanoTime;
 	private File loggingDir;
+	private File imageDir;
 
 	// Is there an openCV?
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -184,7 +185,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		if (mLogging) {
 			if (mAcqModeSequence) {
 				//Save image!!
-				File imgFileName = new File(loggingDir.getPath() + "/img_" + System.nanoTime() + "_" + refNanoTime + ".jpg");
+				File imgFileName = new File(imageDir.getPath() + "/img_" + System.nanoTime() + "_" + refNanoTime + ".jpg");
 				// Convert to Bitmap (android)
 				Bitmap rgbaBitmap = Bitmap.createBitmap(inputFrame.rgba().cols(), inputFrame.rgba().rows(), Bitmap.Config.ARGB_8888);;
 				Utils.matToBitmap(inputFrame.rgba(),rgbaBitmap);
@@ -199,7 +200,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 				}
 			} else {
 				//Save image!!
-				File imgFileName = new File(loggingDir.getPath() + "/img_" + System.nanoTime() + "_" + refNanoTime + ".jpg");
+				File imgFileName = new File(Environment.getExternalStorageDirectory().getPath() + "/img_" + System.nanoTime() + "_" + refNanoTime + ".jpg");
 				// Convert to Bitmap (android)
 				Bitmap rgbaBitmap = Bitmap.createBitmap(inputFrame.rgba().cols(), inputFrame.rgba().rows(), Bitmap.Config.ARGB_8888);;
 				Utils.matToBitmap(inputFrame.rgba(),rgbaBitmap);
@@ -289,6 +290,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		for (Integer key : mSensorIntNameList.keySet()) {
 			if (manager.getDefaultSensor(key) != null) {
 				sensorList.add(manager.getDefaultSensor(key));
+				Log.i(TAG, "Sensor added: " + mSensorIntNameList.get(key));
 			}
 		}
 		return sensorList;
@@ -297,43 +299,45 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
-		if (mLogging) {
-			Integer key = sensor.getType();
-			Logger sensorLogger = mSensorLoggers.get(key);
-			String eventData = mSensorIntNameList.get(key) + "_ACC," + System.nanoTime();
-			switch (accuracy) {
-			case (SensorManager.SENSOR_STATUS_ACCURACY_HIGH):
-				eventData += ",4";
-				break;
-			case (SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM):
-				eventData += ",3";
-				break;
-			case (SensorManager.SENSOR_STATUS_ACCURACY_LOW):
-				eventData += ",2";
-				break;
-			case (SensorManager.SENSOR_STATUS_UNRELIABLE):
-				eventData += ",1";
-				break;
-			case (SensorManager.SENSOR_STATUS_NO_CONTACT):
-				eventData += ",0";
-				break;
-			}				
-			try {
-				sensorLogger.log(eventData);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+//		if (mLogging & mAcqModeSequence) {
+//			Integer key = sensor.getType();
+//			Logger sensorLogger = mSensorLoggers.get(key);
+//			// String eventData = mSensorIntNameList.get(key) + "_ACC," + System.nanoTime();
+//			String eventData = "ACC," + System.nanoTime();
+//			switch (accuracy) {
+//			case (SensorManager.SENSOR_STATUS_ACCURACY_HIGH):
+//				eventData += ",4";
+//				break;
+//			case (SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM):
+//				eventData += ",3";
+//				break;
+//			case (SensorManager.SENSOR_STATUS_ACCURACY_LOW):
+//				eventData += ",2";
+//				break;
+//			case (SensorManager.SENSOR_STATUS_UNRELIABLE):
+//				eventData += ",1";
+//				break;
+//			case (SensorManager.SENSOR_STATUS_NO_CONTACT):
+//				eventData += ",0";
+//				break;
+//			}				
+//			try {
+//				sensorLogger.log(eventData);
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
 	}
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 
-		if (mLogging) {
+		if (mLogging & mAcqModeSequence) {
 			Integer key = event.sensor.getType();
 			Logger sensorLogger = mSensorLoggers.get(key);
-			String eventData = mSensorIntNameList.get(key) + "_VAL," + System.nanoTime() + "," + event.timestamp;
-			// String eventData = "" + event.timestamp;
+			// String eventData = mSensorIntNameList.get(key) + "_VAL," + System.nanoTime() + "," + event.timestamp;
+			// String eventData = "VAL," + System.nanoTime() + "," + event.timestamp;
+			String eventData = System.nanoTime() + "," + event.timestamp;
 			for (float i : event.values){
 				eventData += "," + i; 
 			}
@@ -355,13 +359,15 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 		String currentDateandTime = sdf.format(new Date());
 
 		// Start to log sensors and images
-		if (!mLogging)
+		if (!mLogging & mAcqModeSequence)
 		{
 
 			// Create directory
 			loggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
 					"/" + currentDateandTime);
 			loggingDir.mkdirs();
+			imageDir = new File(loggingDir.getPath() + "/images");
+			imageDir.mkdirs();
 
 			// Create the loggers
 			ListIterator<Sensor> iter = mSensorList.listIterator();
@@ -370,8 +376,16 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 				Integer key = iter.next().getType();
 				String sensorName = mSensorIntNameList.get(key);
 				loggerFileName = loggingDir.getPath() + "/sensor_" + sensorName + "_log.csv";
+				
+				String csvFormat = "// SYSTEM_TIME [ns], EVENT_TIMESTAMP [ns], EVENT_" + mSensorIntNameList.get(key) + "_VALUES";
 				try {
-					mSensorLoggers.put(key,new Logger(loggerFileName));
+					Logger logger = new Logger(loggerFileName);
+					mSensorLoggers.put(key,logger);
+					try {
+						logger.log(csvFormat);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
@@ -379,6 +393,10 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 			
 			Toast.makeText(this, "START LOGGING!", Toast.LENGTH_SHORT).show();
 			mLogging = true;
+		} else if (!mLogging & !mAcqModeSequence)
+		{
+			Toast.makeText(this, "TAKE PICTURE!", Toast.LENGTH_SHORT).show();
+			mLogging = true;			
 
 		} else {
 			Iterator<Map.Entry<Integer,Logger>> iter = mSensorLoggers.entrySet().iterator();
