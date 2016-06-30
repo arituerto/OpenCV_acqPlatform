@@ -30,10 +30,12 @@ import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.SubMenu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -95,6 +97,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		
 		Log.i(TAG, "called onCreate");
 		super.onCreate(savedInstanceState);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -222,6 +225,7 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	// CREATING THE MENU
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
+		
 		Log.i(TAG, "called onCreateOptionsMenu");
 
 		mAutoFocusModeMenu = menu.addSubMenu("Auto Focus Modes");
@@ -355,8 +359,11 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 	public boolean onTouch(View v, MotionEvent event) {
 		Log.i(TAG,"onTouch event");
 
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HHmmss");
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		String currentDateandTime = sdf.format(new Date());
+		
+		Size resolution = mOpenCvCameraView.getResolution();
+		String currentResolution = Integer.valueOf(resolution.width).toString() + "x" + Integer.valueOf(resolution.height).toString();
 
 		// Start to log sensors and images
 		if (!mLogging & mAcqModeSequence)
@@ -364,9 +371,9 @@ public class AcqPlatformActivity extends Activity implements CvCameraViewListene
 
 			// Create directory
 			loggingDir = new File(Environment.getExternalStorageDirectory().getPath() +
-					"/" + currentDateandTime);
+					"/" + currentDateandTime + "_" + Build.MANUFACTURER + "_" + Build.MODEL);
 			loggingDir.mkdirs();
-			imageDir = new File(loggingDir.getPath() + "/images");
+			imageDir = new File(loggingDir.getPath() + "/images_" + currentResolution);
 			imageDir.mkdirs();
 
 			// Create the loggers
